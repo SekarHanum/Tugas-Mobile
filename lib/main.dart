@@ -1,72 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:async'; // <--- Tambahkan ini untuk timer
+import 'dart:async';
+import 'package:flutter/services.dart';
 
+// Main function to run the app
 void main() {
   runApp(AbsensiApp());
 }
 
-// Tambahkan ini! (class AbsensiApp)
 class AbsensiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Absensi',
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(), // <-- Mulai dari SplashScreen
+      home: SplashScreen(),
     );
   }
 }
 
-@override
-Widget build(BuildContext context) {
-  return WillPopScope( // <--- Tambahkan WillPopScope
-    onWillPop: () async {
-      bool keluar = await _showExitPage(context); // <--- Panggil fungsi exit
-      return keluar;
-    },
-    child: Scaffold(
-      appBar: AppBar(
-        title: Text('Absensi'),
-        centerTitle: true,
-      ),
-    ),
-  );
-}
-
-Future<bool> _showExitPage(BuildContext context) async {
-  await showDialog(
-    context: context,
-    barrierDismissible: false, // Tidak bisa klik luar dialog
-    builder: (context) {
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.of(context).pop(true); // Setelah 2 detik, tutup dialog
-      });
-
-      return AlertDialog(
-        backgroundColor: Colors.green, // Background hijau
-        content: Center(
-          heightFactor: 1,
-          child: Text(
-            "Terima Kasih Telah Disiplin",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 22,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      );
-    },
-  );
-
-  return true; // Setelah dialog, keluar dari aplikasi
-}
-
-
-
-// SplashScreen
+// Splash Screen widget
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -76,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 3), () { // <--- 3 detik, lalu ke HomePage
+    Timer(Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomePage()),
       );
@@ -86,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green, // background hijau biar fresh
+      backgroundColor: Colors.green,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -114,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// HomePage (seperti sebelumnya)
+// Home Page widget
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -123,12 +76,67 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-
   DateTime? _mulaiLembur;
 
   void _showToast(BuildContext context, String message) {
     final snackBar = SnackBar(content: Text(message));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Keluar Aplikasi'),
+          content: Text('Apakah Anda yakin ingin keluar?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showThankYouPage(context);
+              },
+              child: Text('Ya'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showThankYouPage(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.green,
+          content: Center(
+            heightFactor: 1,
+            child: Text(
+              "Terima Kasih Telah Disiplin",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.of(context).pop(); // Tutup dialog
+      SystemNavigator.pop(); // Keluar dari aplikasi
+    });
   }
 
   void _showAbsensiDialog(BuildContext context) {
@@ -278,22 +286,9 @@ class _HomePageState extends State<HomePage> {
             ElevatedButton(
               onPressed: () {
                 if (_namaController.text.isNotEmpty) {
-                  if (_mulaiLembur != null) {
-                    DateTime selesaiLembur = DateTime.now();
-                    String mulaiJam = DateFormat('HH:mm').format(_mulaiLembur!);
-                    String selesaiJam = DateFormat('HH:mm').format(selesaiLembur);
-
-                    Duration durasi = selesaiLembur.difference(_mulaiLembur!);
-                    int jam = durasi.inHours;
-                    int menit = durasi.inMinutes.remainder(60);
-
-                    Navigator.pop(context);
-                    _showToast(context,
-                        'Lembur dari $mulaiJam sampai $selesaiJam\nDurasi: $jam jam $menit menit');
-                    _mulaiLembur = null;
-                  } else {
-                    _showToast(context, 'Anda belum memulai lembur!');
-                  }
+                  String currentTime = DateFormat('HH:mm').format(DateTime.now());
+                  Navigator.pop(context);
+                  _showToast(context, 'Lembur selesai pukul $currentTime');
                   _namaController.clear();
                 } else {
                   _showToast(context, 'Mohon isi nama');
@@ -307,68 +302,36 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildAbsensiButton(BuildContext context, String title, IconData iconData) {
-    return ElevatedButton(
-      onPressed: () {
-        if (title == "Absen Masuk") {
-          _showAbsensiDialog(context);
-        } else if (title == "Absen Keluar") {
-          _showKeluarDialog(context);
-        } else if (title == "Mulai Lembur") {
-          _showMulaiLemburDialog(context);
-        } else if (title == "Selesai Lembur") {
-          _showSelesaiLemburDialog(context);
-        } else {
-          _showToast(context, '$title diklik');
-        }
-      },
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.all(16),
-        textStyle: TextStyle(fontSize: 16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(iconData, size: 40),
-          SizedBox(height: 8),
-          Text(title, textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Absensi'),
-        centerTitle: true,
+        title: Text('Home Page'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Selamat Pagi\nJangan lupa sarapan',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+            Text('Selamat datang di aplikasi Absensi!'),
+            ElevatedButton(
+              onPressed: () => _showAbsensiDialog(context),
+              child: Text('Absen Masuk'),
             ),
-            SizedBox(height: 24),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildAbsensiButton(context, "Absen Masuk", Icons.login),
-                  _buildAbsensiButton(context, "Absen Keluar", Icons.logout),
-                  _buildAbsensiButton(context, "Mulai Lembur", Icons.timer),
-                  _buildAbsensiButton(context, "Selesai Lembur", Icons.timer_off),
-                ],
-              ),
+            ElevatedButton(
+              onPressed: () => _showKeluarDialog(context),
+              child: Text('Absen Keluar'),
+            ),
+            ElevatedButton(
+              onPressed: () => _showMulaiLemburDialog(context),
+              child: Text('Mulai Lembur'),
+            ),
+            ElevatedButton(
+              onPressed: () => _showSelesaiLemburDialog(context),
+              child: Text('Selesai Lembur'),
+            ),
+            ElevatedButton(
+              onPressed: () => _showLogoutDialog(context),
+              child: Text('Logout'),
             ),
           ],
         ),
